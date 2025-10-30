@@ -1,0 +1,41 @@
+upstream backend_blue_primary {
+    server app_blue:3000 max_fails=1 fail_timeout=5s;
+    server app_green:3000 backup;
+}
+
+map $active_pool $backend {
+    default backend_blue_primary;
+    "blue" backend_blue_primary;
+}
+
+# Custom log format with pool, release, and upstream details
+log_format detailed '$remote_addr - $remote_user [$time_local] '
+                    '"$request" $status $body_bytes_sent '
+                    '"$http_referer" "$http_user_agent" '
+                    'pool="$upstream_http_x_app_pool" '
+                    'release="$upstream_http_x_release_id" '
+                    'upstream_status="$upstream_status" '
+                    'upstream_addr="$upstream_addr" '
+                    'request_time=$request_time '
+                    'upstream_response_time=$upstream_response_time';
+                    'status="$status" '
+                    'request="$request"';
+
+server {
+    listen 80;
+    set $active_pool "${ACTIVE_POOL}";
+    
+    # Use custom log format and write to shared volume
+    access_log /var/log/nginx/access.log detailed;
+
+    location / {
+        proxy_pass http://$backend;
+        proxy_set_header Host $host;
+        
+        proxy_connect_timeout 2s;  # if it can’t connect to the upstream in 2 seconds, fail.
+        proxy_read_timeout 3s;  # if the app doesn’t respond in 3 seconds, fail.
+        
+        proxy_next_upstream error timeout http_500 http_502 http_503 http_504;
+        proxy_next_upstream_tries 2;  # try up to 2 backends per request.
+    }
+}
