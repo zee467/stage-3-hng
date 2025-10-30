@@ -1,0 +1,62 @@
+version: "3.9"
+
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    depends_on:
+      - app_blue
+      - app_green
+    volumes:
+    # /etc/nginx/templates/default.conf.template is where Nginx automatically 
+    # looks for templates when using docker-entrypoint + envsubst.
+      - ./nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
+      # mount a named volume for log sharing with other containers (like alert_watcher).
+      - nginx_logs:/var/log/nginx
+    environment:
+      - ACTIVE_POOL=${ACTIVE_POOL}
+      - NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx/conf.d
+
+  app_blue:
+    image: ${BLUE_IMAGE}
+    environment:
+      - APP_POOL=blue
+      - RELEASE_ID=${RELEASE_ID_BLUE}
+      - PORT=3000
+    ports:
+      - "8081:3000"
+    expose:
+      - "3000"
+
+  app_green:
+    image: ${GREEN_IMAGE}
+    environment:
+      - APP_POOL=green
+      - RELEASE_ID=${RELEASE_ID_GREEN}
+      - PORT=3000
+    ports:
+      - "8082:3000"
+    expose:
+      - "3000"
+
+  alert_watcher:
+    # builds a custom watcher image from the repo (Dockerfile.watcher)
+    build:
+      context: .
+      dockerfile: Dockerfile.watcher
+    depends_on:
+      - nginx
+    volumes:
+      # mounts Nginx logs (read-only) to monitor them
+      - nginx_logs:/var/log/nginx:ro
+    environment:
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+      - ERROR_RATE_THRESHOLD=${ERROR_RATE_THRESHOLD:-2}  # % or count of failed requests that trigger an alert.
+      - WINDOW_SIZE=${WINDOW_SIZE:-200}  # number of recent requests to analyze. 
+      - ALERT_COOLDOWN_SEC=${ALERT_COOLDOWN_SEC:-300}  # prevents spamming Slack with alerts too frequently.
+      - MAINTENANCE_MODE=${MAINTENANCE_MODE:-false}  # disables alerts if you’re intentionally redeploying.
+    restart: unless-stopped  # keeps the watcher running unless you stop it manually.
+
+volumes:
+  nginx_logs:
