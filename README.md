@@ -147,53 +147,6 @@ docker-compose logs -f alert_watcher
 docker-compose logs -f
 ```
 
-## Troubleshooting
-
-### No Slack Alerts
-```bash
-# Check webhook URL is set
-docker-compose exec alert_watcher env | grep SLACK_WEBHOOK_URL
-
-# Test webhook manually
-curl -X POST $SLACK_WEBHOOK_URL \
-  -H 'Content-Type: application/json' \
-  -d '{"text":"Test alert"}'
-
-# Check watcher logs for errors
-docker-compose logs alert_watcher | grep -i error
-```
-
-### Watcher Not Starting
-```bash
-# Check if log file exists
-docker-compose exec nginx ls -la /var/log/nginx/access.log
-
-# Verify volume mount
-docker-compose exec alert_watcher ls -la /var/log/nginx/
-
-# Restart watcher
-docker-compose restart alert_watcher
-```
-
-### Nginx Logs Missing Fields
-```bash
-# Check Nginx config
-docker-compose exec nginx cat /etc/nginx/conf.d/default.conf
-```
-
-### Failover Not Working
-```bash
-# Test individual apps
-curl http://localhost:8081/healthz  # Blue
-curl http://localhost:8082/healthz  # Green
-
-# Check Nginx error logs
-docker-compose logs nginx | grep -i error
-
-# Verify upstream configuration
-docker-compose exec nginx cat /etc/nginx/conf.d/default.conf | grep -A 5 upstream
-```
-
 ## Project Structure
 ```
 blue-green-deployment/
