@@ -91,7 +91,6 @@ curl -X POST http://localhost:8081/chaos/stop
 ```bash
 # 1. Start chaos on BOTH pools
 curl -X POST http://localhost:8081/chaos/start?mode=error
-curl -X POST http://localhost:8082/chaos/start?mode=error
 
 # 2. Generate traffic to exceed threshold
 for i in {1..250}; do 
@@ -103,7 +102,6 @@ done
 
 # 4. Clean up
 curl -X POST http://localhost:8081/chaos/stop
-curl -X POST http://localhost:8082/chaos/stop
 ```
 
 ### Test 3: Manual Pool Toggle (Maintenance Mode)
