@@ -117,41 +117,6 @@ curl -X POST http://localhost:8081/chaos/stop
 curl -X POST http://localhost:8082/chaos/stop
 ```
 
----
-
-## Troubleshooting
-
-### No Slack Alerts
-```bash
-# Check webhook URL is set
-docker compose exec alert_watcher env | grep SLACK_WEBHOOK_URL
-
-# Test webhook manually
-curl -X POST $SLACK_WEBHOOK_URL \
-  -H 'Content-Type: application/json' \
-  -d '{"text":"Test alert"}'
-
-# Check watcher logs
-docker compose logs alert_watcher
-```
-
-### Alerts Spamming
-```bash
-# Increase cooldown in .env
-ALERT_COOLDOWN_SEC=600
-docker compose restart alert_watcher
-```
-
-### Nginx Logs Missing Fields
-```bash
-# Check Nginx config
-docker compose exec nginx cat /etc/nginx/conf.d/default.conf
-
-# Should show log_format with pool, release, upstream_status fields
-```
-
----
-
 ## Quick Commands
 ```bash
 # View all logs
